@@ -1,0 +1,32 @@
+name: Notify on push
+
+on:
+  push:    # רץ על כל push (כל הענפים). לשנות ל-branches: [main] אם רוצים רק main.
+
+permissions:
+  contents: write   # מבטיח שה-GITHUB_TOKEN יוכל לכתוב תגובות על commit
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create commit comment (mentions the pusher)
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const actor = context.actor;
+            const sha = context.sha;
+            const ref = context.ref;
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+            const shortSha = sha.substring(0,7);
+            const body = `Hey @${actor} — תודה על ה-push ל\`${ref}\` (commit ${shortSha}).\n\nצפה ב-CI: ${runUrl}`;
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: sha,
+              body
+            });
+
+      - name: Log to Actions console
+        run: |
+          echo ">>> Notification created for ${{ github.actor }} on ${{ github.ref }} (sha ${{ github.sha }})"
